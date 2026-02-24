@@ -1,0 +1,2468 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Financial Dashboard - Case: Ms. Lan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f8fafc; /* bg-slate-50 */
+        background-image: linear-gradient(
+          to bottom,
+          #f8fafc,
+          /* bg-slate-50 */ #e2e8f0 /* bg-slate-200 */
+        );
+        background-attachment: fixed;
+      }
+
+      /* --- CSS cho Gauge --- */
+      .gauge-container {
+        width: 280px;
+        height: 140px;
+        overflow: hidden;
+        position: relative;
+        margin: auto;
+      }
+
+      .gauge-dial {
+        width: 280px;
+        height: 140px;
+        border-radius: 140px 140px 0 0;
+        background-image: conic-gradient(
+          from -90deg at 50% 100%,
+          #ef4444 0%,
+          /* red-500 */ #f87171 20%,
+          /* red-400 */ #fde047 50%,
+          /* yellow-300 */ #22c55e 80%,
+          /* green-500 */ #16a34a 100% /* green-600 */
+        );
+        position: absolute;
+        top: 0;
+      }
+
+      .gauge-mask {
+        width: 240px;
+        height: 120px;
+        border-radius: 120px 120px 0 0;
+        background: #ffffff; /* bg-white */
+        position: absolute;
+        top: 20px;
+        left: 20px;
+      }
+
+      .gauge-needle {
+        width: 4px;
+        height: 130px;
+        background: #1e293b; /* slate-800 */
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform-origin: bottom;
+        transform: translateX(-50%) rotate(0deg);
+        transition: transform 0.5s ease-in-out;
+        border-radius: 2px 2px 0 0;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+      }
+
+      .gauge-center {
+        width: 20px;
+        height: 20px;
+        background: #1e293b; /* slate-800 */
+        border-radius: 50%;
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+      }
+
+      /* --- CSS cho thanh trượt (Slider) --- */
+      input[type="range"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 8px;
+        background: #e2e8f0; /* bg-slate-200 */
+        border-radius: 9999px;
+        outline: none;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+      }
+      input[type="range"]:hover {
+        opacity: 1;
+      }
+      input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #4f46e5; /* indigo-600 */
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #4f46e5; /* indigo-600 */
+        border-radius: 50%;
+        cursor: pointer;
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      /* --- CSS cho <details> --- */
+      summary {
+        list-style: none;
+        cursor: pointer;
+      }
+      summary::-webkit-details-marker {
+        display: none;
+      }
+      .details-arrow {
+        transition: transform 0.2s ease-in-out;
+      }
+      details[open] .details-arrow {
+        transform: rotate(180deg);
+      }
+
+      /* --- CSS CHO TAB --- */
+      .tab-button {
+        transition: all 0.2s ease-in-out;
+      }
+      .tab-button.active {
+        background-color: #4f46e5; /* indigo-600 */
+        color: white;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -2px rgba(0, 0, 0, 0.1);
+      }
+
+      /* === CSS CHO TAB HỎI ĐÁP === */
+      #qaListContainer .qa-item {
+        border-bottom-width: 1px;
+      }
+      #qaListContainer .qa-item:last-child {
+        border-bottom-width: 0;
+      }
+      .loader {
+        width: 48px;
+        height: 48px;
+        border: 5px solid #cbd5e1; /* slate-300 */
+        border-bottom-color: #4f46e5; /* indigo-600 */
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 1s linear infinite;
+        margin: 20px auto;
+      }
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100">
+    <div class="container mx-auto max-w-7xl p-4 md:p-8">
+      <h1 class="text-3xl font-bold text-center text-slate-800 mb-6">
+        Case: Ms. Lan
+      </h1>
+
+      <!-- === CẬP NHẬT PHẦN TAB === -->
+      <div class="flex justify-center space-x-2 mb-8">
+        <button
+          id="btnTabDashboard"
+          class="tab-button active font-medium py-2 px-6 rounded-full text-slate-700 bg-white shadow-sm border border-slate-200"
+        >
+          Dashboard
+        </button>
+        <button
+          id="btnTabFormulas"
+          class="tab-button font-medium py-2 px-6 rounded-full text-slate-700 bg-white shadow-sm border border-slate-200"
+        >
+          Formulas & Ratios
+        </button>
+        <!-- NÚT TAB MỚI -->
+        <button
+          id="btnTabQA"
+          class="tab-button font-medium py-2 px-6 rounded-full text-slate-700 bg-white shadow-sm border border-slate-200"
+        >
+          Q&A
+        </button>
+      </div>
+
+      <!-- === NỘI DUNG TAB BẢNG ĐIỀU KHIỂN === -->
+      <div id="tabDashboard">
+        <!-- === PHẦN 1: HỒ SƠ KHÁCH HÀNG (ĐÃ SỬA LẠI NHƯ CŨ) === -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-xl font-semibold text-indigo-700 mb-2">
+            Client Profile: Ms. Nguyen Thi Lan (52 Y.O.)
+          </h2>
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-slate-600 mb-6 border-b border-slate-200 pb-4"
+          >
+            <div>
+              <span class="font-medium text-slate-800">Position:</span>
+              Senior Manager (State Agency)
+            </div>
+            <div>
+              <span class="font-medium text-slate-800">Status:</span>
+              Single, no children
+            </div>
+            <div>
+              <span class="font-medium text-slate-800">Place:</span>
+              High-end apartment, Hanoi
+            </div>
+            <div>
+              <span class="font-medium text-slate-800">Dependent:</span>
+              2 parents (87 & 85) serious health issues
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <label class="text-sm font-medium text-slate-500"
+                >Total Inflows (monthly)</label
+              >
+              <p class="text-2xl font-bold text-green-600">116,000,000 VND</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <label class="text-sm font-medium text-slate-500"
+                >Net Worth</label
+              >
+              <p class="text-2xl font-bold text-slate-900">
+                19,170,000,000 VND
+              </p>
+            </div>
+            <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <label class="text-sm font-medium text-yellow-600"
+                >Core Issue</label
+              >
+              <p class="text-2xl font-bold text-yellow-700">
+                "Asset Rich, Cash Poor"
+              </p>
+            </div>
+            <div class="bg-red-50 p-4 rounded-lg border border-red-200">
+              <label class="text-sm font-medium text-red-700"
+                >Cash Flow (monthly)</label
+              >
+              <p
+                class="text-2xl font-bold text-red-600"
+                id="summaryNetCashFlow"
+              >
+                -2,200,000 VND
+              </p>
+            </div>
+          </div>
+        </div>
+        <!-- === KẾT THÚC PHẦN 1 === -->
+
+        <!-- === PHẦN 2: DÒNG TIỀN HÀNG THÁNG === -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-semibold text-slate-800 mb-6 text-center">
+            Part 2: Monthly Cash Flow (Current Situation)
+          </h2>
+          <p class="text-center text-slate-600 mb-6 -mt-4">
+            Adjust income and expenses to see the direct impact on net cash
+            flow.
+          </p>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+              <h3 class="text-lg font-semibold mb-6 text-slate-700">
+                Adjustments (Inputs)
+              </h3>
+              <div class="mb-6">
+                <label
+                  for="inputThuNhap"
+                  class="block text-sm font-medium text-slate-700 mb-2"
+                  >📈 Total Inflows (Flow In)</label
+                >
+                <input
+                  type="range"
+                  id="inputThuNhap"
+                  min="51000000"
+                  max="201000000"
+                  step="1000000"
+                />
+                <p
+                  class="text-lg font-bold text-indigo-600 text-right mt-2"
+                  id="valueThuNhap"
+                >
+                  116,000,000 VND
+                </p>
+              </div>
+              <div class="mb-6">
+                <label
+                  for="inputTraNo"
+                  class="block text-sm font-medium text-slate-700 mb-2"
+                  >💸 Debt Payment (Flow Out)</label
+                >
+                <input
+                  type="range"
+                  id="inputTraNo"
+                  min="0"
+                  max="100000000"
+                  step="1000000"
+                />
+                <p
+                  class="text-lg font-bold text-indigo-600 text-right mt-2"
+                  id="valueTraNo"
+                >
+                  57,000,000 VND
+                </p>
+              </div>
+              <div class="mb-6">
+                <label
+                  for="inputChamSoc"
+                  class="block text-sm font-medium text-slate-700 mb-2"
+                  >❤️ Parental Care Cost (Flow Out)</label
+                >
+                <input
+                  type="range"
+                  id="inputChamSoc"
+                  min="0"
+                  max="50000000"
+                  step="100000"
+                />
+                <p
+                  class="text-lg font-bold text-indigo-600 text-right mt-2"
+                  id="valueChamSoc"
+                >
+                  30,200,000 VND
+                </p>
+              </div>
+              <div class="mb-6">
+                <label
+                  for="inputSinhHoat"
+                  class="block text-sm font-medium text-slate-700 mb-2"
+                  >🛒 Other Living Costs (Flow Out)</label
+                >
+                <input
+                  type="range"
+                  id="inputSinhHoat"
+                  min="0"
+                  max="50000000"
+                  step="100000"
+                />
+                <p
+                  class="text-lg font-bold text-indigo-600 text-right mt-2"
+                  id="valueSinhHoat"
+                >
+                  31,000,000 VND
+                </p>
+              </div>
+            </div>
+            <div class="p-0 md:p-6 flex flex-col justify-center">
+              <h3 class="text-lg font-semibold mb-4 text-slate-700 text-center">
+                Net Cash Flow Result (Output)
+              </h3>
+              <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="gauge-container">
+                  <div class="gauge-dial"></div>
+                  <div class="gauge-mask"></div>
+                  <div class="gauge-needle" id="gaugeNeedle"></div>
+                  <div class="gauge-center"></div>
+                </div>
+                <div class="text-center mt-[-40px] relative z-10">
+                  <p class="text-sm text-slate-500">Net Cash Flow (monthly)</p>
+                  <p class="text-3xl font-bold" id="netCashFlowValue">
+                    -2,200,000 VND
+                  </p>
+                  <p class="text-sm font-medium" id="netCashFlowStatus">
+                    WARNING: Deficit!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- === PHẦN 2.5: CHI TIẾT DÒNG TIỀN (BẢNG) === -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <details>
+            <summary
+              class="text-xl font-semibold text-slate-800 flex justify-between items-center cursor-pointer"
+            >
+              <span>Detailed Monthly Cash Flow (Table)</span>
+              <svg
+                class="w-6 h-6 details-arrow"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                />
+              </svg>
+            </summary>
+
+            <p class="text-slate-600 mb-6 mt-2">
+              Detailed breakdown of all monthly inflows and outflows based on
+              the initial case study.
+            </p>
+
+            <div
+              class="mt-6 overflow-x-auto border border-slate-200 rounded-lg"
+            >
+              <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Item
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Amount (VND)
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Total (VND)
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                  <!-- Inflows -->
+                  <tr class="bg-green-50">
+                    <td
+                      class="px-6 py-4 font-semibold text-green-700"
+                      colspan="2"
+                    >
+                      I. TOTAL CASH INFLOWS
+                    </td>
+                    <td
+                      class="px-6 py-4 text-right font-semibold text-green-700"
+                    >
+                      116,000,000
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-10 pr-6 py-4 text-slate-600">
+                      Net Income (After Tax)
+                    </td>
+                    <td class="px-6 py-4 text-right text-slate-600">
+                      115,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-10 pr-6 py-4 text-slate-600">
+                      Passive Income (Interest)
+                    </td>
+                    <td class="px-6 py-4 text-right text-slate-600">
+                      1,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <!-- Outflows -->
+                  <tr class="bg-red-50">
+                    <td
+                      class="px-6 py-4 font-semibold text-red-700"
+                      colspan="2"
+                    >
+                      II. TOTAL CASH OUTFLOWS
+                    </td>
+                    <td class="px-6 py-4 text-right font-semibold text-red-700">
+                      118,200,000
+                    </td>
+                  </tr>
+                  <!-- Fixed Expenses -->
+                  <tr>
+                    <td class="pl-10 pr-6 py-3 font-medium text-slate-800">
+                      A. Fixed Expenses
+                    </td>
+                    <td class="px-6 py-3 text-right font-medium text-slate-800">
+                      82,500,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Debt Payments
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Mortgage Repayment
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      45,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Auto Loan Repayment
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      12,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Dependent Care (Fixed)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Hiring 2 Caregivers
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      20,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Operating Costs (Housing & Auto)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Condo Management Fee
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      2,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Car Parking Fee
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      1,500,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Insurance (Monthly Average)
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      2,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <!-- Variable Expenses -->
+                  <tr>
+                    <td class="pl-10 pr-6 py-3 font-medium text-slate-800">
+                      B. Variable Expenses
+                    </td>
+                    <td class="px-6 py-3 text-right font-medium text-slate-800">
+                      35,700,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Dependent Care (Variable)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">Medication</td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      3,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Nutrition (Medical Milk)
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      3,800,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Medical Supplies (Diapers)
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      1,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      In-home Doctor
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      2,400,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Household Living Expenses (3 people)
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Electricity, Water, Gas
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      2,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Internet & Cable TV
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">500,000</td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Food & Groceries
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      8,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                      class="pl-14 pr-6 py-2 text-sm text-slate-500"
+                      colspan="3"
+                    >
+                      Personal & Lifestyle
+                    </td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Fuel & Auto Maintenance
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      3,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Dining Out & Socializing
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      7,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Shopping (Personal)
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      3,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+                  <tr>
+                    <td class="pl-16 pr-6 py-2 text-slate-600">
+                      Other Expenses (Entertainment, Gifts)
+                    </td>
+                    <td class="px-6 py-2 text-right text-slate-600">
+                      2,000,000
+                    </td>
+                    <td></td>
+                  </tr>
+
+                  <!-- Net Cash Flow -->
+                  <tr class="border-t-2 border-slate-300">
+                    <td class="px-6 py-4 font-bold text-slate-900" colspan="2">
+                      III. NET CASH FLOW
+                    </td>
+                    <td
+                      class="px-6 py-4 text-right font-bold text-red-600 text-lg bg-red-50"
+                    >
+                      -2,200,000
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <!-- === PHẦN 3: BẢNG CÂN ĐỐI & CHỈ SỐ === -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 class="text-2xl font-semibold text-slate-800 mb-6 text-center">
+            Part 3: Balance Sheet & Ratios (Current Situation)
+          </h2>
+          <p class="text-center text-slate-600 mb-6 -mt-4">
+            Analysis of assets, liabilities, and key health ratios.
+          </p>
+
+          <!-- Treemap -->
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold text-slate-700 mb-4 text-center">
+              Balance Sheet Visualization (Treemap)
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Assets -->
+              <div
+                class="bg-white border border-slate-200 rounded-lg p-4 h-64 flex flex-col border-l-4 border-blue-500"
+              >
+                <h4 class="font-bold text-blue-700 mb-2">
+                  TOTAL ASSETS: 21.65B
+                </h4>
+                <div class="flex-grow flex gap-1">
+                  <div
+                    class="bg-blue-300 rounded p-2 flex items-center justify-center text-center w-[83.1%]"
+                  >
+                    <span class="font-semibold text-blue-900"
+                      >Real Estate<br />(18.0B)</span
+                    >
+                  </div>
+                  <div class="flex flex-col gap-1 w-[16.9%]">
+                    <div
+                      class="bg-blue-200 rounded p-1 flex items-center justify-center text-center h-[57.4%]"
+                    >
+                      <span class="text-xs font-medium text-blue-800"
+                        >Invested<br />(2.1B)</span
+                      >
+                    </div>
+                    <div
+                      class="bg-blue-200 rounded p-1 flex items-center justify-center text-center h-[32.5%]"
+                    >
+                      <span class="text-xs font-medium text-blue-800"
+                        >Vehicle<br />(1.2B)</span
+                      >
+                    </div>
+                    <div
+                      class="bg-green-300 rounded p-1 flex items-center justify-center text-center h-[10.1%]"
+                    >
+                      <span class="text-xs font-medium text-green-800"
+                        >Cash<br />(0.35B)</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- Liabilities & Net Worth -->
+              <div
+                class="bg-white border border-slate-200 rounded-lg p-4 h-64 flex flex-col border-l-4 border-red-500"
+              >
+                <h4 class="font-bold text-slate-700 mb-2">
+                  LIABILITIES & NET WORTH: 21.65B
+                </h4>
+                <div class="flex-grow flex gap-1">
+                  <div
+                    class="bg-green-200 rounded p-2 flex items-center justify-center text-center w-[88.5%]"
+                  >
+                    <span class="font-semibold text-green-900"
+                      >Net Worth<br />(19.17B)</span
+                    >
+                  </div>
+                  <div class="flex flex-col gap-1 w-[11.5%]">
+                    <div
+                      class="bg-red-300 rounded p-1 flex items-center justify-center text-center h-[84.7%]"
+                    >
+                      <span class="text-xs font-medium text-red-900"
+                        >Mortgage<br />(2.1B)</span
+                      >
+                    </div>
+                    <div
+                      class="bg-red-200 rounded p-1 flex items-center justify-center text-center h-[15.3%]"
+                    >
+                      <span class="text-xs font-medium text-red-800"
+                        >Other<br />(0.38B)</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vital Ratios -->
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold text-slate-700 mb-4 text-center">
+              Vital Ratios
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <!-- Saving Ratio -->
+              <div
+                id="ratioSaving"
+                class="border p-3 rounded bg-white shadow-sm border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Saving Ratio (Cash Flow)</label
+                >
+                <p class="text-xl font-bold" id="savingRatioValue">-1.9%</p>
+                <p class="text-xs font-medium" id="savingRatioStatus">
+                  Problematic (<5%)
+                </p>
+              </div>
+              <!-- Debt Payment Ratio -->
+              <div
+                id="ratioDebt"
+                class="border p-3 rounded bg-white shadow-sm border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Debt Payment Ratio (Cash Flow)</label
+                >
+                <p class="text-xl font-bold" id="debtRatioValue">49.1%</p>
+                <p class="text-xs font-medium" id="debtRatioStatus">
+                  Problematic ( >30%)
+                </p>
+              </div>
+              <!-- Emergency Fund -->
+              <div
+                id="ratioEmergency"
+                class="border p-3 rounded bg-white shadow-sm border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Emergency Fund (Liquidity)</label
+                >
+                <p class="text-xl font-bold" id="emergencyFundValue">
+                  2.96 months
+                </p>
+                <p class="text-xs font-medium" id="emergencyFundStatus">
+                  Problematic (Need 3-6)
+                </p>
+              </div>
+              <!-- Debt (Asset) Ratio -->
+              <div
+                class="border-l-4 border-green-500 p-3 rounded bg-white shadow-sm border border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Debt Ratio (Net Worth)</label
+                >
+                <p class="text-xl font-bold text-green-600">11.5%</p>
+                <p class="text-xs font-medium text-green-600">
+                  Freedom (<20%)*
+                </p>
+              </div>
+
+              <!-- Current Ratio -->
+              <div
+                class="border-l-4 border-green-500 p-3 rounded bg-white shadow-sm border border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Current Ratio (Liquidity)</label
+                >
+                <p class="text-xl font-bold text-green-600">1167%</p>
+                <p class="text-xs font-medium text-green-600">
+                  Freedom (>100%)
+                </p>
+              </div>
+
+              <!-- Fin. Indep. Ratio 1 -->
+              <div
+                class="border-l-4 border-yellow-500 p-3 rounded bg-white shadow-sm border border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Fin. Independence Ratio 1</label
+                >
+                <p class="text-xl font-bold text-yellow-600">13.5</p>
+                <p class="text-xs font-medium text-yellow-600">
+                  Independent (10-20)
+                </p>
+              </div>
+
+              <!-- Fin. Indep. Ratio 2 -->
+              <div
+                class="border-l-4 border-green-500 p-3 rounded bg-white shadow-sm border border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Fin. Independence Ratio 2 (Debt/NW)</label
+                >
+                <p class="text-xl font-bold text-green-600">12.9%</p>
+                <p class="text-xs font-medium text-green-600">Safe (<30%)</p>
+              </div>
+
+              <!-- Passive Income Ratio -->
+              <div
+                class="border-l-4 border-red-500 p-3 rounded bg-white shadow-sm border border-slate-200"
+              >
+                <label class="text-xs font-medium text-slate-500"
+                  >Passive Income Ratio</label
+                >
+                <p class="text-xl font-bold text-red-600">0.8%</p>
+                <p class="text-xs font-medium text-red-600">
+                  Problematic (None)
+                </p>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500 text-center mt-4">
+              *Ratios show the conflict: Strong Net Worth (Debt Ratio) but
+              critical Cash Flow (Saving & Debt-to-Income).
+            </p>
+          </div>
+
+          <!-- Detailed Balance Sheet -->
+          <div
+            class="bg-slate-100 rounded-lg shadow-inner border border-slate-300"
+          >
+            <details>
+              <summary
+                class="text-lg font-semibold text-slate-700 p-4 rounded-t-lg flex justify-between items-center cursor-pointer list-none"
+              >
+                <span>Detailed Balance Sheet (Table)</span>
+                <svg
+                  class="w-5 h-5 details-arrow"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </summary>
+
+              <div class="p-4 border-t border-slate-300 bg-white rounded-b-lg">
+                <div
+                  class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm"
+                >
+                  <!-- Assets Column -->
+                  <div class="space-y-3">
+                    <h5
+                      class="font-bold text-blue-600 text-base border-b-2 border-blue-100 pb-1"
+                    >
+                      ASSETS
+                    </h5>
+
+                    <p class="font-semibold text-slate-700 mt-2">
+                      Liquid Assets
+                    </p>
+                    <div class="flex justify-between pl-2 text-slate-600">
+                      <span>Cash & Checking</span>
+                      <span>50,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between pl-2 text-slate-600 border-b border-slate-100 pb-2"
+                    >
+                      <span>Savings (Emergency)</span>
+                      <span>300,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between font-medium text-slate-800"
+                    >
+                      <span>Subtotal:</span>
+                      <span>350,000,000</span>
+                    </div>
+
+                    <p class="font-semibold text-slate-700 pt-2">
+                      Invested Assets
+                    </p>
+                    <div class="flex justify-between pl-2 text-slate-600">
+                      <span>Gold</span>
+                      <span>1,600,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between pl-2 text-slate-600 border-b border-slate-100 pb-2"
+                    >
+                      <span>Securities</span>
+                      <span>500,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between font-medium text-slate-800"
+                    >
+                      <span>Subtotal:</span>
+                      <span>2,100,000,000</span>
+                    </div>
+
+                    <p class="font-semibold text-slate-700 pt-2">
+                      Personal Assets
+                    </p>
+                    <div class="flex justify-between pl-2 text-slate-600">
+                      <span>Real Estate</span>
+                      <span>18,000,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between pl-2 text-slate-600 border-b border-slate-100 pb-2"
+                    >
+                      <span>Vehicle</span>
+                      <span>1,200,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between font-medium text-slate-800"
+                    >
+                      <span>Subtotal:</span>
+                      <span>19,200,000,000</span>
+                    </div>
+
+                    <div
+                      class="flex justify-between font-bold text-lg text-blue-700 bg-blue-50 p-2 rounded-lg mt-4"
+                    >
+                      <span>TOTAL ASSETS</span>
+                      <span>21,650,000,000</span>
+                    </div>
+                  </div>
+
+                  <!-- Liabilities Column -->
+                  <div class="space-y-3">
+                    <h5
+                      class="font-bold text-red-600 text-base border-b-2 border-red-100 pb-1"
+                    >
+                      LIABILITIES & NET WORTH
+                    </h5>
+
+                    <p class="font-semibold text-slate-700 mt-2">
+                      Current Liabilities
+                    </p>
+                    <div
+                      class="flex justify-between pl-2 text-slate-600 border-b border-slate-100 pb-2"
+                    >
+                      <span>Credit Card Balance</span>
+                      <span>30,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between font-medium text-slate-800"
+                    >
+                      <span>Subtotal:</span>
+                      <span>30,000,000</span>
+                    </div>
+
+                    <p class="font-semibold text-slate-700 pt-2">
+                      Long-term Liabilities
+                    </p>
+                    <div class="flex justify-between pl-2 text-slate-600">
+                      <span>Mortgage Loan</span>
+                      <span>2,100,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between pl-2 text-slate-600 border-b border-slate-100 pb-2"
+                    >
+                      <span>Auto Loan</span>
+                      <span>350,000,000</span>
+                    </div>
+                    <div
+                      class="flex justify-between font-medium text-slate-800"
+                    >
+                      <span>Subtotal:</span>
+                      <span>2,450,000,000</span>
+                    </div>
+
+                    <div
+                      class="flex justify-between font-bold text-red-700 bg-red-50 p-2 rounded-lg mt-4"
+                    >
+                      <span>TOTAL LIABILITIES</span>
+                      <span>2,480,000,000</span>
+                    </div>
+
+                    <div
+                      class="flex justify-between font-bold text-green-700 bg-green-50 p-2 rounded-lg mt-10"
+                    >
+                      <span>NET WORTH</span>
+                      <span>19,170,000,000</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- === PHẦN 4: KỊCH BẢN PHÂN TÍCH ĐẶC BIỆT (BIG CASE) === -->
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-10 mb-8">
+          <h2 class="text-3xl font-bold text-center text-indigo-700 mb-4">
+            Financial Reset Scenario: The 20 Billion VND Case
+          </h2>
+          <p class="text-center text-slate-600 mb-10 max-w-3xl mx-auto">
+            This is a comprehensive financial plan assuming Ms. Lan receives 20
+            billion VND (after-tax). This event completely resets her financial
+            structure, resolving all current liquidity issues and shifting
+            objectives from 'survival' to 'prosperity and legacy'.
+          </p>
+
+          <!-- Step 1 -->
+          <h3
+            class="text-xl font-semibold text-slate-800 mb-4 border-b border-slate-300 pb-2"
+          >
+            Step 1: "Pay Yourself First" & Resolve Outstanding Issues
+          </h3>
+          <p class="text-slate-600 mb-5">
+            Before investing, the top priority is to use this money to patch the
+            current financial "holes."
+          </p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p class="text-sm font-medium text-slate-500">Amount Received</p>
+              <p class="text-xl font-bold text-green-600">20,000,000,000 VND</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p class="text-sm font-medium text-slate-500">
+                Pay Off All Debt (Deduction)
+              </p>
+              <p class="text-xl font-bold text-red-600">- 2,450,000,000 VND</p>
+              <p class="text-xs text-slate-500">
+                (Home Loan: ~2.1B, Car Loan: ~0.35B)
+              </p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <p class="text-sm font-medium text-slate-500">
+                Emergency Fund (Deduction)
+              </p>
+              <p class="text-xl font-bold text-yellow-600">
+                - 1,100,000,000 VND
+              </p>
+              <p class="text-xs text-slate-500">
+                (Fortress Level)
+                <br />
+                <span class="italic"
+                  >Calc: 18 months x 61.2M (new expenses)</span
+                >
+              </p>
+            </div>
+          </div>
+
+          <!-- === PHẦN MỚI TỪ PDF (STEP 1 DETAIL) - ĐÃ LÀM THÒ THỤT === -->
+          <!-- *** ĐÃ XÓA 'open' ĐỂ MẶC ĐỊNH ĐÓNG *** -->
+          <details class="mt-8">
+            <summary
+              class="text-lg font-semibold text-slate-700 mb-3 flex justify-between items-center cursor-pointer list-none"
+            >
+              <span>Detailed Rationale (Pay Yourself First):</span>
+              <svg
+                class="w-6 h-6 details-arrow"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="2"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                />
+              </svg>
+            </summary>
+
+            <div
+              class="overflow-x-auto rounded-lg border border-slate-200 mb-6 mt-2"
+            >
+              <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50">
+                  <tr>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Action
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Amount (VND)
+                    </th>
+                    <th
+                      scope="col"
+                      class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Rationale / Defense
+                    </th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-200">
+                  <tr>
+                    <td
+                      class="px-6 py-4 whitespace-nowrap font-medium text-slate-900"
+                    >
+                      Full Debt Repayment
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-700">
+                      2,450,000,000
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-700">
+                      Equivalent to earning a risk-free return by removing
+                      interest expenses and restoring Net Zero Leverage—the
+                      safest "investment."
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="px-6 py-4 whitespace-nowrap font-medium text-slate-900"
+                    >
+                      Emergency Fund (18 months)
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-700">
+                      1,100,000,000
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-700">
+                      Builds a Fortress-Level Liquidity Reserve, covering 18 x
+                      61.2M monthly costs. Protects long-term capital from
+                      medical or family emergencies.
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      class="px-6 py-4 whitespace-nowrap font-medium text-slate-900"
+                    >
+                      Net Capital Available for Investment
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-slate-700">
+                      16,450,000,000
+                    </td>
+                    <td class="px-6 py-4 text-sm text-slate-700">
+                      Clean, debt-free, and fully liquid—the foundation for
+                      strategic portfolio construction.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+          <!-- === KẾT THÚC PHẦN MỚI TỪ PDF (STEP 1 DETAIL) === -->
+
+          <div
+            class="bg-indigo-50 p-4 rounded-lg text-center border border-indigo-200"
+          >
+            <p class="text-sm font-medium text-indigo-700">
+              Remaining Amount for Investment & Allocation
+            </p>
+            <p class="text-3xl font-bold text-indigo-700">16,450,000,000 VND</p>
+          </div>
+
+          <!-- Step 2 -->
+          <h3
+            class="text-xl font-semibold text-slate-800 mb-4 mt-10 border-b border-slate-300 pb-2"
+          >
+            Step 2: Establish New Financial Goals
+          </h3>
+          <p class="text-slate-600 mb-5">
+            With old problems resolved, Ms. Lan's new goals will shift from
+            "survival" to "prosperity and legacy."
+          </p>
+          <ul class="list-disc list-inside space-y-2 text-slate-700">
+            <li>
+              <strong>Short-term (1-2 years):</strong> Stabilize mindset, set up
+              investment portfolios, immediately improve quality of care for
+              parents, reduce workload (if desired).
+            </li>
+            <li>
+              <strong>Mid-term (2-5 years):</strong> Generate passive income
+              sufficient to completely replace her current job's salary.
+              Rebalance assets (reduce dependency on the 18B apartment).
+            </li>
+            <li>
+              <strong>Long-term (5+ years):</strong> Preserve assets,
+              sustainable capital growth, and build a legacy (e.g., a charitable
+              fund in her parents' name).
+            </li>
+          </ul>
+
+          <!-- Step 3 -->
+          <h3
+            class="text-xl font-semibold text-slate-800 mb-4 mt-10 border-b border-slate-300 pb-2"
+          >
+            Step 3: Proposed Portfolio Allocation (16.45 Billion VND)
+          </h3>
+          <p class="text-slate-600 mb-5">
+            A balanced portfolio prioritizing "Wealth Preservation & Income" due
+            to her age (52) and caregiving responsibilities.
+          </p>
+          <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Category
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Allocation (VND)
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Weight
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Rationale and Purpose
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-semibold text-slate-900">
+                      1. Safety Core
+                    </div>
+                    <div class="text-xs text-slate-500">(Income Core)</div>
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowraws text-sm text-slate-700"
+                  >
+                    6,580,000,000
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    40%
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    <b>Purpose:</b> Generate fixed, absolutely safe cash
+                    flow.<br /><b>Tools:</b> Bank savings (long-term rates) and
+                    Government Bonds.<br />
+                    <span>
+                      The interest income from this will be used to cover a
+                      large portion of parents' medical care costs.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-semibold text-slate-900">
+                      2. Balanced Growth
+                    </div>
+                    <div class="text-xs text-slate-500">(Growth)</div>
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    4,935,000,000
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    30%
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    <b>Purpose:</b> Long-term capital growth, hedge against
+                    inflation.<br /><b>Tools:</b> Reputable ETFs tracking the
+                    VN30 index.<br />
+                    <span>
+                      This is a diversified approach to the stock market, less
+                      risky than picking individual stocks.</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-semibold text-slate-900">
+                      3. Cash Flow Real Estate
+                    </div>
+                    <div class="text-xs text-slate-500">(Cash Flow RE)</div>
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    3,290,000,000
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    20%
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    <b>Purpose:</b> Diversification (non-financial asset),
+                    generate passive income that grows with inflation.<br /><b
+                      >Tools:</b
+                    >
+                    Purchase 01 small apartment (easy to liquidate and rent out)
+                    in a populated area.<br />
+                    <span class="italic">
+                      (Adjusted from "1-2 units/shophouse" to match market
+                      reality)</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-semibold text-slate-900">
+                      4. Legacy & Passion
+                    </div>
+                    <div class="text-xs text-slate-500">(Legacy)</div>
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    1,645,000,000
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-sm text-slate-700"
+                  >
+                    10%
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    <b>Purpose:</b> Optimize life satisfaction, create a
+                    legacy.<br /><b>Tools:</b> Budget for charitable/social
+                    activities (e.g., Support for the Elderly) in her parents'
+                    name.<br />
+                    <span class="italic">
+                      (Adjusted from "Establish a fund" to reduce operational
+                      burden)</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot class="bg-slate-100">
+                <tr>
+                  <td class="px-6 py-3 text-sm font-bold text-slate-900">
+                    TOTAL
+                  </td>
+                  <td class="px-6 py-3 text-sm font-bold text-slate-900">
+                    16,450,000,000
+                  </td>
+                  <td class="px-6 py-3 text-sm font-bold text-slate-900">
+                    100%
+                  </td>
+                  <td class="px-6 py-3"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Step 4 -->
+          <h3
+            class="text-xl font-semibold text-slate-800 mb-4 mt-10 border-b border-slate-300 pb-2"
+          >
+            Step 4: Milestone Potential Assessment
+          </h3>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
+            <!-- 1-Year Milestone -->
+            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+              <h4 class="text-lg font-semibold text-indigo-700 mb-3">
+                1-Year Milestone
+              </h4>
+              <p class="text-sm font-medium text-slate-700">Gains:</p>
+              <ul class="list-disc list-inside text-sm text-slate-600 mb-3">
+                <li>Completely debt-free.</li>
+                <li>1.1B VND emergency fund.</li>
+                <li>
+                  Positive cash flow + passive income (est. 50-60M/month).
+                </li>
+                <li>Financial burden eliminated.</li>
+              </ul>
+              <p class="text-sm font-medium text-slate-700">Trade-offs:</p>
+              <ul class="list-disc list-inside text-sm text-slate-600">
+                <li>Reduced liquidity (2.45B) for safety.</li>
+                <li>Risk of slow growth if market is sideways.</li>
+              </ul>
+            </div>
+            <!-- 5-Year Milestone -->
+            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+              <h4 class="text-lg font-semibold text-indigo-700 mb-3">
+                5-Year Milestone
+              </h4>
+              <p class="text-sm font-medium text-slate-700">Gains:</p>
+              <ul class="list-disc list-inside text-sm text-slate-600 mb-3">
+                <li>Financial Independence (passive income > expenses).</li>
+                <li>Power of Choice: Can retire early (age 57).</li>
+                <li>Capital growth from ETFs and Real Estate.</li>
+              </ul>
+              <p class="text-sm font-medium text-slate-700">Trade-offs:</p>
+              <ul class="list-disc list-inside text-sm text-slate-600">
+                <li>Market volatility risk (mitigated by 'anchor').</li>
+                <li>
+                  Parents' health may decline, but fund can absorb shocks.
+                </li>
+              </ul>
+            </div>
+
+            <!-- 10-Year Milestone -->
+            <!-- *** ĐÂY LÀ PHẦN ĐÃ SỬA LỖI *** -->
+            <div class="bg-slate-50 p-6 rounded-lg border border-slate-200">
+              <h4 class="text-lg font-semibold text-indigo-700 mb-3">
+                10+ Year Milestone
+              </h4>
+              <p class="text-sm font-medium text-slate-700">Gains:</p>
+              <!-- Sửa 'class_basic' thành 'class' -->
+              <ul class="list-disc list-inside text-sm text-slate-600 mb-3">
+                <li>Legacy preservation and growth.</li>
+                <li>Social impact from charitable activities.</li>
+                <li>Fulfilling "satisfactions of life."</li>
+              </ul>
+              <p class="text-sm font-medium text-slate-700">Trade-offs:</p>
+              <ul class="list-disc list-inside text-sm text-slate-600">
+                <li>Inflation risk on cash holdings (requires rebalancing).</li>
+              </ul>
+            </div>
+            <!-- *** KẾT THÚC PHẦN SỬA LỖI *** -->
+          </div>
+
+          <!-- === Step 5 (MỚI TỪ PDF) === -->
+          <h3
+            class="text-xl font-semibold text-slate-800 mb-4 mt-10 border-b border-slate-300 pb-2"
+          >
+            Step 5: Risk Management Framework
+          </h3>
+          <p class="text-slate-600 mb-5">
+            An overview of key risks and the strategies in place to mitigate
+            them.
+          </p>
+          <div class="overflow-x-auto rounded-lg border border-slate-200">
+            <table class="min-w-full divide-y divide-slate-200">
+              <thead class="bg-slate-50">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Key Risk
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Potential Impact
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                  >
+                    Mitigation Strategy
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-slate-200">
+                <tr>
+                  <td class="px-6 py-4 font-medium text-slate-900">
+                    Market Downturn
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Short-term NAV decline (-10%)
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    DCA investing + portfolio rebalancing.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-slate-900">
+                    Inflation > 6%
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Erodes real yield of fixed assets
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Gradually increase equity allocation (+5%).
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-slate-900">
+                    Health Shock / Parent Care
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Large unplanned expenses
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Covered by 1.1B emergency fund + Legacy allocation.
+                  </td>
+                </tr>
+                <tr>
+                  <td class="px-6 py-4 font-medium text-slate-900">
+                    Longevity Risk / Legal & Tax Changes
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Outliving assets in old age / Future policy adjustments
+                  </td>
+                  <td class="px-6 py-4 text-sm text-slate-700">
+                    Maintain 4-5% withdrawal rule; reinvest surplus yields. /
+                    Annual portfolio review & adjustment per regulations.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <!-- === KẾT THÚC STEP 5 === -->
+        </div>
+      </div>
+      <!-- === KẾT THÚC TAB BẢNG ĐIỀU KHIỂN === -->
+
+      <!-- === NỘI DUNG TAB CÔNG THỨC === -->
+      <div id="tabFormulas" style="display: none">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-10 mb-8">
+          <h2 class="text-2xl font-semibold text-slate-800 mb-6 text-center">
+            Formulas & Ratio Definitions
+          </h2>
+          <p class="text-center text-slate-600 mb-10 max-w-3xl mx-auto">
+            This section explains the calculations for all financial ratios used
+            in the dashboard. These formulas are based on the initial data from
+            the case study.
+          </p>
+
+          <div class="space-y-6">
+            <!-- Công thức cho phần tương tác -->
+            <div>
+              <h3
+                class="text-xl font-semibold text-indigo-700 mb-4 border-b border-indigo-100 pb-2"
+              >
+                Interactive Dashboard Ratios
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Net Cash Flow -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    1. Net Cash Flow
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Measures the difference between money in and money out for
+                    the month.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    Total Inflows - (Debt + Care + Living Costs)
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> 116.0M - (57.0M +
+                    30.2M + 31.0M) = -2.2M VND
+                  </p>
+                </div>
+                <!-- Saving Ratio -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    2. Saving Ratio
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Percentage of income left over as savings.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Net Cash Flow / Total Inflows) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (-2.2M / 116.0M) *
+                    100 = -1.9%
+                  </p>
+                </div>
+                <!-- Debt Payment Ratio -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    3. Debt Payment Ratio
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Percentage of income used for debt payments.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Monthly Debt Payment / Total Inflows) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (57.0M / 116.0M) *
+                    100 = 49.1%
+                  </p>
+                </div>
+                <!-- Emergency Fund -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    4. Emergency Fund
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    How many months of expenses can be covered by liquid assets.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    Liquid Assets / Total Monthly Expenses
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> 350M / (57.0M +
+                    30.2M + 31.0M) = 2.96 months
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Công thức cho phần cố định -->
+            <div>
+              <h3
+                class="text-xl font-semibold text-indigo-700 mb-4 mt-8 border-b border-indigo-100 pb-2"
+              >
+                Static Balance Sheet Ratios
+              </h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Debt Ratio -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    5. Debt Ratio (Asset-based)
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Percentage of assets financed by debt.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Total Liabilities / Total Assets) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (2.48B / 21.65B) *
+                    100 = 11.5%
+                  </p>
+                </div>
+                <!-- Current Ratio -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    6. Current Ratio (Liquidity)
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Ability to pay short-term debts with liquid assets.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Liquid Assets / Current Liabilities) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (350M / 30M) * 100
+                    = 1167%
+                  </p>
+                </div>
+                <!-- Fin. Indep. Ratio 1 -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    7. Fin. Independence Ratio 1
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Years you can live on your net worth.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    Net Worth / (Total Monthly Expenses * 12)
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> 19.17B / (118.2M *
+                    12) = 13.5
+                  </p>
+                </div>
+                <!-- Fin. Indep. Ratio 2 -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    8. Fin. Independence Ratio 2
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Compares total debt to net worth.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Total Liabilities / Net Worth) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (2.48B / 19.17B) *
+                    100 = 12.9%
+                  </p>
+                </div>
+                <!-- Passive Income Ratio -->
+                <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <h4 class="text-lg font-semibold text-slate-800">
+                    9. Passive Income Ratio
+                  </h4>
+                  <p class="text-sm text-slate-600 mt-1 mb-2">
+                    Percentage of expenses covered by passive income.
+                  </p>
+                  <code
+                    class="block text-sm bg-slate-200 text-slate-900 p-2 rounded"
+                  >
+                    (Passive Income / Total Monthly Expenses) * 100
+                  </code>
+                  <p class="text-sm text-slate-500 mt-2">
+                    <span class="font-medium">Initial:</span> (1.0M / 118.2M) *
+                    100 = 0.8%
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- === KẾT THÚC TAB CÔNG THỨC === -->
+
+      <!-- === NỘI DUNG TAB HỎI ĐÁP (ĐÃ CẬP NHẬT) === -->
+      <div id="tabQA" style="display: none">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-10 mb-8">
+          <h2 class="text-2xl font-semibold text-slate-800 mb-6 text-center">
+            Q&A (Real-time)
+          </h2>
+          <p class="text-center text-slate-600 mb-10 max-w-3xl mx-auto">
+            Ask your questions about this case. Questions are saved and
+            displayed for everyone.
+            <br />
+            <span class="text-sm font-medium text-indigo-600"
+              >Status: <span id="authStatus">Connecting...</span></span
+            >
+            |
+            <span class="text-sm text-indigo-600"
+              >User ID: <span id="userIdDisplay">...</span></span
+            >
+          </p>
+
+          <!-- Form Gửi Câu Hỏi -->
+          <form id="qaForm" class="mb-8">
+            <!-- === TRƯỜNG MỚI ĐƯỢC THÊM === -->
+            <div class="mb-4">
+              <label
+                for="qaNameInput"
+                class="block text-sm font-medium text-slate-700 mb-2"
+                >Your Name:</label
+              >
+              <input
+                type="text"
+                id="qaNameInput"
+                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter your name..."
+                required
+              />
+            </div>
+            <!-- === KẾT THÚC TRƯỜNG MỚI === -->
+
+            <div class="mb-4">
+              <label
+                for="qaInput"
+                class="block text-sm font-medium text-slate-700 mb-2"
+                >Your Question:</label
+              >
+              <textarea
+                id="qaInput"
+                rows="3"
+                class="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Enter your question here..."
+                required
+              ></textarea>
+            </div>
+            <button
+              type="submit"
+              id="qaSubmitBtn"
+              class="w-full bg-indigo-600 text-white font-medium py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Submit Question
+            </button>
+          </form>
+
+          <!-- Danh sách câu hỏi -->
+          <div>
+            <h3
+              class="text-xl font-semibold text-slate-800 mb-4 border-b border-slate-300 pb-2"
+            >
+              Submitted Questions
+            </h3>
+            <div
+              id="qaListContainer"
+              class="bg-slate-50 border border-slate-200 rounded-lg max-h-96 overflow-y-auto"
+            >
+              <!-- Loader -->
+              <div id="qaLoader" class="flex justify-center p-6">
+                <div class="loader"></div>
+              </div>
+              <!-- Các câu hỏi sẽ được chèn vào đây bởi JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- === SCRIPT CŨ (CHO DASHBOARD) === -->
+    <script>
+      // --- STATE MANAGEMENT ---
+      const BASE_STATE = {
+        netIncome: 116000000, // 115M Net + 1M Passive
+        debtPayment: 57000000,
+        careCost: 30200000,
+        livingCost: 31000000,
+
+        // Data for ratios
+        disposableIncome: 116000000, // Use Total Inflow for interactive ratios
+        liquidAssets: 350000000, // Cash + Savings (Emergency Fund)
+      };
+
+      let state = { ...BASE_STATE };
+
+      // --- ELEMENT SELECTORS ---
+      let inputThuNhap, valueThuNhap;
+      let inputTraNo, valueTraNo;
+      let inputChamSoc, valueChamSoc;
+      let inputSinhHoat, valueSinhHoat;
+      let gaugeNeedle, netCashFlowValue, netCashFlowStatus, summaryNetCashFlow;
+      let ratioDebt, debtRatioValue, debtRatioStatus;
+      let ratioEmergency, emergencyFundValue, emergencyFundStatus;
+      let ratioSaving, savingRatioValue, savingRatioStatus;
+
+      // --- (CẬP NHẬT) ELEMENT SELECTORS CHO TAB ---
+      let btnTabDashboard, btnTabFormulas, btnTabQA;
+      let tabDashboard, tabFormulas, tabQA;
+
+      // --- UTILITY FUNCTIONS ---
+      function formatCurrency(value) {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "VND",
+        }).format(value);
+      }
+
+      function mapValue(value, inMin, inMax, outMin, outMax) {
+        return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
+      }
+
+      // --- UI UPDATE FUNCTIONS ---
+
+      function updateInputUI() {
+        if (!inputThuNhap) return; // Guard clause in case elements aren't ready
+        inputThuNhap.value = state.netIncome;
+        valueThuNhap.textContent = formatCurrency(state.netIncome);
+
+        inputTraNo.value = state.debtPayment;
+        valueTraNo.textContent = formatCurrency(state.debtPayment);
+
+        inputChamSoc.value = state.careCost;
+        valueChamSoc.textContent = formatCurrency(state.careCost);
+
+        inputSinhHoat.value = state.livingCost;
+        valueSinhHoat.textContent = formatCurrency(state.livingCost);
+      }
+
+      function updateGauge(netCashFlow) {
+        if (!gaugeNeedle) return; // Guard clause
+        let rotation = mapValue(netCashFlow, -20000000, 50000000, -85, 85);
+        rotation = Math.max(-85, Math.min(85, rotation));
+
+        gaugeNeedle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+
+        const formattedCashFlow = formatCurrency(netCashFlow);
+        netCashFlowValue.textContent = formattedCashFlow;
+        summaryNetCashFlow.textContent = formattedCashFlow;
+
+        if (netCashFlow < 0) {
+          netCashFlowValue.className = "text-3xl font-bold text-red-600";
+          netCashFlowStatus.className = "text-sm font-medium text-red-600";
+          netCashFlowStatus.textContent = "WARNING: Deficit!";
+        } else if (netCashFlow < 10000000) {
+          netCashFlowValue.className = "text-3xl font-bold text-yellow-600";
+          netCashFlowStatus.className = "text-sm font-medium text-yellow-600";
+          netCashFlowStatus.textContent = "BALANCED: Just Enough";
+        } else {
+          netCashFlowValue.className = "text-3xl font-bold text-green-600";
+          netCashFlowStatus.className = "text-sm font-medium text-green-600";
+          netCashFlowStatus.textContent = "GOOD: Positive Cash Flow!";
+        }
+      }
+
+      function updateVitalSigns(totalExpenses, netCashFlow) {
+        if (!ratioDebt) return; // Guard clause
+
+        // 1. Debt-to-Income Ratio
+        const debtRatio = (state.debtPayment / state.disposableIncome) * 100;
+        debtRatioValue.textContent = `${debtRatio.toFixed(1)}%`;
+        ratioDebt.querySelector("label").textContent =
+          "Debt Payment Ratio (Cash Flow)";
+
+        ratioDebt.classList.remove(
+          "border-l-4",
+          "border-red-500",
+          "border-yellow-500",
+          "border-green-500"
+        );
+        debtRatioStatus.classList.remove(
+          "text-red-600",
+          "text-yellow-600",
+          "text-green-600"
+        );
+        if (debtRatio > 30) {
+          ratioDebt.classList.add("border-l-4", "border-red-500");
+          debtRatioStatus.textContent = "Problematic ( >30%)";
+          debtRatioStatus.classList.add("text-red-600");
+        } else if (debtRatio > 20) {
+          ratioDebt.classList.add("border-l-4", "border-yellow-500");
+          debtRatioStatus.textContent = "Caution (20-30%)";
+          debtRatioStatus.classList.add("text-yellow-600");
+        } else {
+          ratioDebt.classList.add("border-l-4", "border-green-500");
+          debtRatioStatus.textContent = "Safe ( <20%)";
+          debtRatioStatus.classList.add("text-green-600");
+        }
+
+        // 2. Emergency Fund
+        const emergencyMonths =
+          totalExpenses > 0 ? state.liquidAssets / totalExpenses : 99;
+        emergencyFundValue.textContent = `${emergencyMonths.toFixed(1)} months`;
+
+        ratioEmergency.classList.remove(
+          "border-l-4",
+          "border-red-500",
+          "border-yellow-500",
+          "border-green-500"
+        );
+        emergencyFundStatus.classList.remove(
+          "text-red-600",
+          "text-yellow-600",
+          "text-green-600"
+        );
+        if (emergencyMonths < 3) {
+          ratioEmergency.classList.add("border-l-4", "border-red-500");
+          emergencyFundStatus.textContent = "Problematic ( <3)";
+          emergencyFundStatus.classList.add("text-red-600");
+        } else if (emergencyMonths < 6) {
+          ratioEmergency.classList.add("border-l-4", "border-yellow-500");
+          emergencyFundStatus.textContent = "Problematic (Need 3-6)";
+          emergencyFundStatus.classList.add("text-yellow-600");
+        } else {
+          ratioEmergency.classList.add("border-l-4", "border-green-500");
+          emergencyFundStatus.textContent = "Safe ( >6)";
+          emergencyFundStatus.classList.add("text-green-600");
+        }
+
+        // 3. Saving Ratio
+        const savingRatio =
+          state.disposableIncome > 0
+            ? (netCashFlow / state.disposableIncome) * 100
+            : 0;
+        savingRatioValue.textContent = `${savingRatio.toFixed(1)}%`;
+
+        ratioSaving.classList.remove(
+          "border-l-4",
+          "border-red-500",
+          "border-yellow-500",
+          "border-green-500"
+        );
+        savingRatioStatus.classList.remove(
+          "text-red-600",
+          "text-yellow-600",
+          "text-green-600"
+        );
+        if (savingRatio < 5) {
+          ratioSaving.classList.add("border-l-4", "border-red-500");
+          savingRatioStatus.textContent = "Problematic ( <5%)";
+          savingRatioStatus.classList.add("text-red-600");
+        } else if (savingRatio < 10) {
+          ratioSaving.classList.add("border-l-4", "border-yellow-500");
+          savingRatioStatus.textContent = "Low (5-10%)";
+          savingRatioStatus.classList.add("text-yellow-600");
+        } else {
+          ratioSaving.classList.add("border-l-4", "border-green-500");
+          savingRatioStatus.textContent = "Healthy ( >10%)";
+          savingRatioStatus.classList.add("text-green-600");
+        }
+      }
+
+      // --- CENTRAL CALCULATION FUNCTION ---
+      function updateDashboard() {
+        if (state.disposableIncome === 0) return; // Don't run calc if state not set
+        const totalExpenses =
+          state.debtPayment + state.careCost + state.livingCost;
+        const netCashFlow = state.netIncome - totalExpenses;
+
+        updateGauge(netCashFlow);
+        updateVitalSigns(totalExpenses, netCashFlow);
+      }
+
+      // --- EVENT HANDLER CHO SLIDER ---
+      function onInputChange(e) {
+        const id = e.target.id;
+        const value = parseInt(e.target.value);
+
+        if (id === "inputThuNhap") {
+          state.netIncome = value;
+          state.disposableIncome = value; // Keep them in sync
+          valueThuNhap.textContent = formatCurrency(value);
+        } else if (id === "inputTraNo") {
+          state.debtPayment = value;
+          valueTraNo.textContent = formatCurrency(value);
+        } else if (id === "inputChamSoc") {
+          state.careCost = value;
+          valueChamSoc.textContent = formatCurrency(value);
+        } else if (id === "inputSinhHoat") {
+          state.livingCost = value;
+          valueSinhHoat.textContent = formatCurrency(value);
+        }
+
+        updateDashboard();
+      }
+
+      // === (CẬP NHẬT) HÀM CHUYỂN TAB ===
+      function switchTab(tabName) {
+        if (!tabDashboard) return; // Guard clause
+
+        // Ẩn tất cả nội dung tab
+        // === SỬA LỖI Ở ĐÂY ===
+        tabDashboard.style.display = "none"; // Lỗi ở đây, phải là "none"
+        tabFormulas.style.display = "none";
+        tabQA.style.display = "none";
+
+        // Bỏ active tất cả nút tab
+        btnTabDashboard.classList.remove("active");
+        btnTabFormulas.classList.remove("active");
+        btnTabQA.classList.remove("active");
+
+        // Hiển thị tab và nút được chọn
+        if (tabName === "dashboard") {
+          tabDashboard.style.display = "block";
+          btnTabDashboard.classList.add("active");
+        } else if (tabName === "formulas") {
+          tabFormulas.style.display = "block";
+          btnTabFormulas.classList.add("active");
+        } else if (tabName === "qa") {
+          tabQA.style.display = "block";
+          btnTabQA.classList.add("active");
+        }
+      }
+
+      // --- INITIALIZATION FUNCTION ---
+      document.addEventListener("DOMContentLoaded", () => {
+        // Gán Eelements cho Dashboard
+        inputThuNhap = document.getElementById("inputThuNhap");
+        valueThuNhap = document.getElementById("valueThuNhap");
+        inputTraNo = document.getElementById("inputTraNo");
+        valueTraNo = document.getElementById("valueTraNo");
+        inputChamSoc = document.getElementById("inputChamSoc");
+        valueChamSoc = document.getElementById("valueChamSoc");
+        inputSinhHoat = document.getElementById("inputSinhHoat");
+        valueSinhHoat = document.getElementById("valueSinhHoat");
+
+        gaugeNeedle = document.getElementById("gaugeNeedle");
+        netCashFlowValue = document.getElementById("netCashFlowValue");
+        netCashFlowStatus = document.getElementById("netCashFlowStatus");
+        summaryNetCashFlow = document.getElementById("summaryNetCashFlow");
+
+        ratioDebt = document.getElementById("ratioDebt");
+        debtRatioValue = document.getElementById("debtRatioValue");
+        debtRatioStatus = document.getElementById("debtRatioStatus");
+
+        ratioEmergency = document.getElementById("ratioEmergency");
+        emergencyFundValue = document.getElementById("emergencyFundValue");
+        emergencyFundStatus = document.getElementById("emergencyFundStatus");
+
+        ratioSaving = document.getElementById("ratioSaving");
+        savingRatioValue = document.getElementById("savingRatioValue");
+        savingRatioStatus = document.getElementById("savingRatioStatus");
+
+        // Gán sự kiện cho sliders
+        inputThuNhap.addEventListener("input", onInputChange);
+        inputTraNo.addEventListener("input", onInputChange);
+        inputChamSoc.addEventListener("input", onInputChange);
+        inputSinhHoat.addEventListener("input", onInputChange);
+
+        // === (CẬP NHẬT) GÁN ELEMENTS VÀ SỰ KIỆN CHO TAB ===
+        btnTabDashboard = document.getElementById("btnTabDashboard");
+        btnTabFormulas = document.getElementById("btnTabFormulas");
+        btnTabQA = document.getElementById("btnTabQA"); // Mới
+        tabDashboard = document.getElementById("tabDashboard");
+        tabFormulas = document.getElementById("tabFormulas");
+        tabQA = document.getElementById("tabQA"); // Mới
+
+        btnTabDashboard.addEventListener("click", () => switchTab("dashboard"));
+        btnTabFormulas.addEventListener("click", () => switchTab("formulas"));
+        btnTabQA.addEventListener("click", () => switchTab("qa")); // Mới
+
+        // Chạy lần đầu khi tải trang
+        updateInputUI();
+        updateDashboard();
+        switchTab("dashboard"); // Đặt tab mặc định
+      });
+    </script>
+
+    <!-- === SCRIPT MỚI CHO FIREBASE (MODULE) - ĐÃ SỬA LỖI === -->
+    <script type="module">
+      // Import các hàm cần thiết từ Firebase SDK
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+        onAuthStateChanged,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+      import {
+        getFirestore,
+        doc,
+        addDoc,
+        deleteDoc,
+        collection,
+        onSnapshot,
+        serverTimestamp,
+        setLogLevel,
+      } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+
+      // === 1. KHỞI TẠO BIẾN ===
+
+      // Đây là cấu hình của bạn (lấy từ dự án "thamte")
+      const firebaseConfig = {
+        apiKey: "AIzaSyDFPuiXK-I2rxht1GYbCpeZI8zmvWSbl4U",
+        authDomain: "thamte.firebaseapp.com",
+        projectId: "thamte",
+        storageBucket: "thamte.firebasestorage.app", // Sửa lỗi chính tả từ 'firebasestorage'
+        messagingSenderId: "624894034395",
+        appId: "1:624894034395:web:bbe7117e5dc8bb3aa627fe",
+        measurementId: "G-7MD5ZRPRH5",
+      };
+
+      let db, auth, currentUserId;
+      // Lấy appId trực tiếp từ config
+      const appId = firebaseConfig.appId;
+
+      // Lấy các phần tử UI của tab Q&A
+      const qaForm = document.getElementById("qaForm");
+      const qaInput = document.getElementById("qaInput");
+      const qaNameInput = document.getElementById("qaNameInput");
+      const qaSubmitBtn = document.getElementById("qaSubmitBtn");
+      const qaListContainer = document.getElementById("qaListContainer");
+      const qaLoader = document.getElementById("qaLoader");
+      const authStatus = document.getElementById("authStatus");
+      const userIdDisplay = document.getElementById("userIdDisplay");
+
+      // Đường dẫn collection công khai
+      const questionsCollectionPath = `/artifacts/${appId}/public/data/questions`;
+
+      // === 2. HÀM KHỞI TẠO FIREBASE ===
+      async function initFirebase() {
+        try {
+          // Khởi tạo app với config đã dán
+          const app = initializeApp(firebaseConfig);
+          const analytics = getAnalytics(app); // Khởi tạo Analytics
+          db = getFirestore(app);
+          auth = getAuth(app);
+
+          // Bật log để gỡ lỗi
+          setLogLevel("Debug");
+
+          // CHỈ SỬ DỤNG đăng nhập ẩn danh
+          await signInAnonymously(auth);
+
+          // Thiết lập trình lắng nghe thay đổi trạng thái Auth
+          onAuthStateChanged(auth, (user) => {
+            if (user) {
+              currentUserId = user.uid;
+              authStatus.textContent = "Connected (Online)";
+              authStatus.className = "text-sm font-medium text-green-600";
+              userIdDisplay.textContent = currentUserId; // Hiển thị đầy đủ ID
+              qaSubmitBtn.disabled = false;
+
+              // Bắt đầu tải câu hỏi
+              loadQuestions();
+            } else {
+              currentUserId = null;
+              authStatus.textContent = "Disconnected (Offline)";
+              authStatus.className = "text-sm font-medium text-red-600";
+              userIdDisplay.textContent = "N/A";
+              qaSubmitBtn.disabled = true;
+            }
+          });
+        } catch (error) {
+          console.error("Firebase init error:", error);
+          authStatus.textContent = `Error: ${error.message}`;
+          authStatus.className = "text-sm font-medium text-red-600";
+        }
+      }
+
+      // === 3. HÀM TẢI CÁC CÂU HỎI (REAL-TIME) ===
+      function loadQuestions() {
+        const questionsCol = collection(db, questionsCollectionPath);
+
+        // onSnapshot sẽ tự động cập nhật khi có dữ liệu mới
+        onSnapshot(
+          questionsCol,
+          (snapshot) => {
+            // Ẩn loader
+            if (qaLoader) qaLoader.style.display = "none";
+
+            // Xử lý dữ liệu
+            const questions = snapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+
+            // Sắp xếp: câu hỏi mới nhất lên đầu
+            questions.sort((a, b) => {
+              const timeA = a.createdAt?.seconds || 0;
+              const timeB = b.createdAt?.seconds || 0;
+              return timeB - timeA; // Sắp xếp giảm dần
+            });
+
+            renderQuestions(questions);
+          },
+          (error) => {
+            console.error("Error loading questions: ", error);
+            if (qaLoader) qaLoader.style.display = "none"; // Ẩn loader khi có lỗi
+            qaListContainer.innerHTML = `<p class="p-4 text-red-600">Không thể tải câu hỏi. Lỗi: ${error.message}</p>`;
+          }
+        );
+      }
+
+      // === 4. HÀM HIỂN THỊ CÂU HỎI (ĐÃ CẬP NHẬT) ===
+      function renderQuestions(questions) {
+        qaListContainer.innerHTML = ""; // Xóa nội dung cũ
+
+        if (questions.length === 0) {
+          qaListContainer.innerHTML = `<p class="p-4 text-slate-500 text-center">No questions yet. Be the first!</p>`;
+          return;
+        }
+
+        questions.forEach((q) => {
+          const questionEl = document.createElement("div");
+          questionEl.className = "qa-item p-4 border-slate-200";
+
+          // Chuyển đổi Timestamp sang định dạng dễ đọc (Tiếng Anh)
+          const timestamp = q.createdAt?.toDate
+            ? q.createdAt.toDate().toLocaleString("en-US")
+            : "just now";
+
+          // --- LOGIC TÊN HIỂN THỊ (MỚI) ---
+          const displayName = q.userName || "Anonymous";
+
+          // --- LOGIC NÚT DELETE ---
+          let deleteButtonHtml = "";
+          if (q.userId === currentUserId) {
+            // Chỉ hiển thị nút xóa nếu userId khớp
+            deleteButtonHtml = `<button 
+              class="delete-btn bg-red-500 hover:bg-red-600 text-white text-xs font-semibold py-1 px-3 rounded-full flex-shrink-0" 
+              data-id="${q.id}"
+              >Delete</button>`;
+          }
+
+          questionEl.innerHTML = `
+            <div class="flex justify-between items-start gap-4">
+              <div class="flex-grow min-w-0"> <!-- Đảm bảo text wrap -->
+                <p class="text-slate-800 break-words">${q.text.replace(
+                  /\n/g,
+                  "<br>"
+                )}</p>
+                <div class="text-xs text-slate-500 mt-2">
+                  <span>Posted by: <span class="font-medium text-indigo-500" title="${
+                    q.userId
+                  }">${displayName}</span></span>
+                  <span class="mx-2">|</span>
+                  <span>At: ${timestamp}</span>
+                </div>
+              </div>
+              ${deleteButtonHtml} <!-- Thêm nút xóa vào đây -->
+            </div>
+          `;
+          qaListContainer.appendChild(questionEl);
+        });
+      }
+
+      // === 5. HÀM XỬ LÝ GỬI CÂU HỎI ===
+      async function handleQuestionSubmit(e) {
+        e.preventDefault();
+        const questionText = qaInput.value.trim();
+        const userName = qaNameInput.value.trim(); // <-- THÊM MỚI
+
+        if (!questionText || !userName) {
+          // <-- CẬP NHẬT
+          return; // Đã đổi sang tiếng Anh
+        }
+
+        if (!currentUserId) {
+          console.error("Authentication error. Cannot submit question.");
+          return;
+        }
+
+        // Vô hiệu hóa nút gửi
+        qaSubmitBtn.disabled = true;
+        qaSubmitBtn.textContent = "Submitting...";
+
+        try {
+          const questionsCol = collection(db, questionsCollectionPath);
+          await addDoc(questionsCol, {
+            text: questionText,
+            userName: userName, // <-- THÊM MỚI
+            userId: currentUserId,
+            createdAt: serverTimestamp(), // Dùng timestamp của server
+          });
+
+          // Gửi thành công, xóa nội dung input
+          qaInput.value = "";
+          // Chúng ta không xóa tên, để người dùng có thể gửi nhiều câu hỏi
+        } catch (error) {
+          console.error("Error submitting question: ", error);
+        } finally {
+          // Kích hoạt lại nút gửi
+          qaSubmitBtn.disabled = false;
+          qaSubmitBtn.textContent = "Submit Question";
+        }
+      }
+
+      // === 6. HÀM XỬ LÝ NÚT XÓA (MỚI) ===
+      async function handleDeleteClick(e) {
+        // Kiểm tra xem phần tử được click có phải là nút xóa không
+        if (e.target.classList.contains("delete-btn")) {
+          const docId = e.target.dataset.id;
+          if (!docId) return;
+
+          // Vô hiệu hóa nút để tránh click nhiều lần
+          e.target.disabled = true;
+          e.target.textContent = "Deleting...";
+
+          try {
+            const docRef = doc(db, questionsCollectionPath, docId);
+            await deleteDoc(docRef);
+            // onSnapshot sẽ tự động xử lý việc cập nhật UI
+          } catch (error) {
+            console.error("Error deleting document: ", error);
+            // Kích hoạt lại nút nếu có lỗi
+            e.target.disabled = false;
+            e.target.textContent = "Delete";
+          }
+        }
+      }
+
+      // === 7. CHẠY HÀM KHỞI TẠO VÀ GÁN SỰ KIỆN ===
+      document.addEventListener("DOMContentLoaded", () => {
+        // Gán sự kiện cho form Q&A
+        if (qaForm) {
+          qaForm.addEventListener("submit", handleQuestionSubmit);
+        }
+
+        // Gán sự kiện cho danh sách câu hỏi (event delegation)
+        if (qaListContainer) {
+          qaListContainer.addEventListener("click", handleDeleteClick);
+        }
+
+        // Khởi tạo Firebase
+        initFirebase();
+      });
+    </script>
+  </body>
+</html>
